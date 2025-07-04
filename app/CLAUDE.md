@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Deeploy is a Go-based deployment/project management tool with both web and terminal user interfaces (TUI). It uses SQLite for data storage and JWT for authentication.
+Deeploy is a TUI-first Docker deployment platform - a modern alternative to Coolify/Dokploy that lives in your terminal. Users install a lightweight server on any VPS (Hetzner, DigitalOcean, etc.), connect via a local CLI, and deploy Docker containers through an intuitive terminal interface. Think "Kubernetes but simple" meets "Vercel but self-hosted".
+
+### Core Vision
+- **TUI-First**: Full terminal UI using Bubble Tea - no web dashboard needed
+- **Simple Setup**: Server install in <5 min, first deploy in <10 min  
+- **Docker Native**: Deploy anything with a Dockerfile or docker-compose.yml
+- **GitHub Integrated**: Connect repos, deploy on push (via GitHub App)
+- **Modern DX**: Vim-style navigation, streaming logs, instant feedback
 
 ## Development Commands
 
@@ -99,6 +106,145 @@ JWT_SECRET=your-secret-key
 2. Follow naming convention: `YYYYMMDDHHMMSS_description.up.sql`
 3. Migrations run automatically on startup
 
+## MVP Plan
+
+### Phase 1: Foundation (Week 1) - Server ↔️ CLI Connection
+
+#### 1.1 API Key System
+- Create `internal/auth/apikey.go` for API key generation & validation
+- Add `api_keys` table to database schema
+- Implement middleware for API key authentication
+- Key format: `dpl_` + 32 random characters (not JWT for simplicity)
+
+#### 1.2 Server Setup
+- Generate API key during installation script
+- Display API key in terminal after installation
+- Simple landing page for web visitors
+- No setup UI needed for MVP
+
+#### 1.3 CLI Connection
+- Implement `cmd/tui/connect.go` for connection flow
+- Save server config to `~/.deeploy/config.yml`
+- Add `/api/health` endpoint for connection verification
+- Show connection status in TUI
+
+### Phase 2: Project Management (Week 2) - CRUD via TUI
+
+#### 2.1 TUI Views
+- Dashboard view showing project list
+- Project detail view showing pods
+- Create/Edit forms using Bubble Tea components
+- Navigation: j/k (up/down), Enter (select), ESC (back), ? (help)
+
+#### 2.2 API Endpoints
+- `GET/POST/PUT/DELETE /api/projects`
+- `GET/POST/PUT/DELETE /api/pods`
+- SSE endpoint for real-time updates
+
+#### 2.3 Database Schema Updates
+```sql
+pods table additions:
++ dockerfile_path TEXT
++ docker_compose_path TEXT
++ env_vars JSON
++ port_mappings JSON
++ status TEXT (pending/building/running/stopped)
++ container_id TEXT
+```
+
+### Phase 3: Docker Integration (Week 3-4) - Deploy Real Containers
+
+#### 3.1 Docker Service
+- Create `internal/docker/client.go` wrapper around Docker SDK
+- Implement build from Dockerfile/docker-compose.yml
+- Container lifecycle management (start/stop/remove)
+- Log streaming implementation
+
+#### 3.2 Deployment Flow
+1. Clone repository (public repos first, no GitHub auth)
+2. Detect Dockerfile or docker-compose.yml
+3. Build Docker image
+4. Run container with configurations
+5. Update pod status in database
+
+#### 3.3 TUI Deployment Features
+- Deploy form with repo URL and branch selection
+- Streaming build logs display
+- Deployment status indicators
+- Error handling and display
+
+### Phase 4: GitHub Integration (Week 5) - Private Repo Support
+
+#### 4.1 GitHub App Setup
+- Create GitHub App (manual process initially)
+- Implement installation webhook handler
+- Store installation_id in database
+- Token exchange for API calls
+
+#### 4.2 Enhanced Setup Flow
+- Add "Connect GitHub" button to setup page
+- Implement OAuth flow
+- Store encrypted GitHub tokens
+
+#### 4.3 Private Repository Features
+- Use GitHub token for authenticated git clone
+- Webhook handler for deploy-on-push
+- Branch selection from GitHub API
+
+### Phase 5: Networking & Domains (Week 6) - Make Apps Accessible
+
+#### 5.1 Traefik Integration
+- Install Traefik as system container
+- Dynamic configuration for routes
+- Automatic SSL via Let's Encrypt
+
+#### 5.2 Domain Management
+- Add domain field to pods
+- Generate Traefik labels for containers
+- Show SSL status in TUI
+
+## Technical Decisions
+
+### Architecture Choices
+- **API Keys over JWT**: Simpler implementation, no refresh complexity
+- **SQLite remains**: No PostgreSQL for MVP, keep it simple
+- **SSE over WebSockets**: Simpler streaming implementation
+- **GitHub App over OAuth**: More professional, better for organizations
+
+### TUI Design Philosophy
+- **Navigation**: Vim-style keybindings (j/k/h/l)
+- **Help System**: ? key shows contextual help
+- **Forms**: Bubble Tea's textarea and textinput components
+- **Layout**: List on left, details on right (similar to k9s)
+
+### Security Considerations
+- API keys stored as SHA256 hashes
+- GitHub tokens encrypted with server secret
+- API keys shown only once during installation
+- No root containers in production
+
+### DevOps Setup
+- Systemd service for server management
+- Auto-restart on crashes
+- SQLite backup via cron
+- Structured JSON logging
+
+## Not in MVP (Future Features)
+- Multi-user management (only single admin for MVP)
+- Build caching optimization
+- Resource limits and monitoring
+- Metrics and observability
+- Buildpacks support
+- Multi-server orchestration
+- Web UI (except minimal setup page)
+
+## Success Criteria
+1. ✅ Server installed in under 5 minutes
+2. ✅ CLI connected in under 1 minute
+3. ✅ First app deployed in under 5 minutes
+4. ✅ Logs streaming in real-time in TUI
+5. ✅ Domain accessible with automatic SSL
+
 ## Important Notes
 
 - Always use the repository pattern in `/internal/data/` for database access
@@ -106,3 +252,6 @@ JWT_SECRET=your-secret-key
 - Use context for passing user information from middleware
 - TUI and web share the same authentication system
 - No test files exist yet - consider adding tests when implementing new features
+- API keys are stored as hashes, never plaintext
+- GitHub tokens are encrypted before storage
+- All container operations go through `/internal/docker/` service
