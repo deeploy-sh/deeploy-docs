@@ -106,6 +106,15 @@ func (p ProjectPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			p.stack = p.stack[:len(p.stack)-1]
 			return p, nil
 		}
+	
+	default:
+		// Forward all other messages to the current page
+		if len(p.stack) > 0 {
+			currentPage := p.stack[len(p.stack)-1]
+			updatedPage, cmd := currentPage.Update(msg)
+			p.stack[len(p.stack)-1] = updatedPage
+			return p, cmd
+		}
 	}
 	return p, nil
 }
