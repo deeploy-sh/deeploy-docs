@@ -18,12 +18,21 @@ var migrations embed.FS
 
 func Init() (*sql.DB, error) {
 	// Create data directory if it doesn't exist
-	err := os.MkdirAll("data", 0755)
+	dbDir := "data"
+	if os.Getenv("GO_ENV") == "production" {
+		dbDir = "/var/lib/deeploy/data"
+	}
+	err := os.MkdirAll(dbDir, 0755)
 	if err != nil {
 		return nil, err
 	}
+
 	// Open database connection - this will create the DB file if it doesn't exist
-	db, err := sql.Open("sqlite", "data/deeploy.db")
+	dbPath := "data/deeploy.db"
+	if os.Getenv("GO_ENV") == "production" {
+		dbPath = "/var/lib/deeploy/data/deeploy.db"
+	}
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +68,7 @@ func Init() (*sql.DB, error) {
 	}
 
 	// Create Migrations-Object
-	m, err := migrate.NewWithSourceInstance("iofs", source, "sqlite://data/deeploy.db")
+	m, err := migrate.NewWithSourceInstance("iofs", source, "sqlite://"+dbPath)
 	if err != nil {
 		log.Fatalf("Initialize migrations failed: %v", err)
 	}
