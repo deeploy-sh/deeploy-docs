@@ -18,7 +18,7 @@ var AppConfig *Config
 func LoadConfig() {
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Println("Error loading .env file")
+		fmt.Println("Error loading .env file, using env variables instead.")
 	} else {
 		log.Println(".env file initialized.")
 	}

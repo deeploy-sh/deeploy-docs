@@ -9,7 +9,7 @@ import (
 )
 
 func Assets(app deeploy.App) {
-	var isDevelopment = os.Getenv("GO_ENV") != "prod"
+	var isDevelopment = os.Getenv("GO_ENV") != "production"
 	assetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var fs http.Handler
 		if isDevelopment {
