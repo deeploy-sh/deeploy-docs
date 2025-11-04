@@ -1,6 +1,8 @@
 package layouts
 
 import (
+	"fmt"
+	"time"
 	"github.com/deeploy-sh/deeploy-docs/internal/ui/components/code"
 	"github.com/deeploy-sh/deeploy-docs/internal/ui/components/copybutton"
 	"github.com/deeploy-sh/deeploy-docs/internal/ui/modules"
@@ -21,7 +23,7 @@ templ BaseLayout() {
 			@code.Script()
 			@copybutton.Script()
 			// Tailwind CSS
-			<link href="/assets/css/output.css" rel="stylesheet"/>
+			<link href={ templ.SafeURL("/assets/css/output.css?v=" + fmt.Sprint(time.Now().Unix())) } rel="stylesheet"/>
 			// Theme initialization - must run before body renders to prevent flash
 			<script nonce={ templ.GetNonce(ctx) }>
 				(function() {
