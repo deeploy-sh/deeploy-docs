@@ -5,4 +5,5 @@ tmp
 .env
 *_templ.go
 *_templ.txt
+assets/css/output.css
 
